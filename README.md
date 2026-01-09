@@ -2,152 +2,18 @@
 
 ## 🚀 Быстрый старт
 
-### HTTP (для локальной разработки)
-
 ```bash
-# Скопируйте файл с переменными окружения
+# переменные окружения
 cp env.example .env
+vim .env
 
-# Отредактируйте .env и задайте безопасные пароли
-nano .env
-
-# Создайте файл с паролем для Basic Auth (Prometheus/Loki)
-htpasswd -c nginx/.htpasswd admin
-
-# Запустите все сервисы
-docker compose up -d
-
-# Проверьте статус
-docker compose ps
-```
-
-### HTTPS (для продакшена)
-
-```bash
-# Скопируйте и настройте переменные окружения
-cp env.example .env
-nano .env
-
-# ВАЖНО: укажите домен БЕЗ https://
 # DOMAIN=monitoring.yourdomain.com
 # CERTBOT_EMAIL=your@email.com
 
-# Создайте файл с паролем для Basic Auth
+# файл с паролем для Basic Auth
 htpasswd -c nginx/.htpasswd admin
 
-# Запустите скрипт получения SSL-сертификата
+# скрипт получения SSL-сертификата
 chmod +x scripts/init-letsencrypt.sh
 ./scripts/init-letsencrypt.sh
-```
-
-## ⚙️ Переменные окружения
-
-| Переменная | Описание | Пример |
-|------------|----------|--------|
-| `DOMAIN` | Домен (без https://) | monitoring.example.com |
-| `CERTBOT_EMAIL` | Email для Let's Encrypt | admin@example.com |
-| `GRAFANA_ADMIN_USER` | Логин Grafana | admin |
-| `GRAFANA_ADMIN_PASSWORD` | Пароль Grafana | secure_password |
-| `GRAFANA_ROOT_URL` | Внешний URL Grafana | https://domain.com/grafana |
-| `PROMETHEUS_RETENTION_TIME` | Хранение метрик | 15d |
-| `PROMETHEUS_EXTERNAL_URL` | Внешний URL Prometheus | https://domain.com/prometheus/ |
-
-## 📊 Точки доступа
-
-| Сервис | URL | Авторизация |
-|--------|-----|-------------|
-| Grafana | /grafana | Встроенная (см. .env) |
-| Prometheus | /prometheus | Basic Auth (nginx/.htpasswd) |
-| Loki | /loki | Basic Auth (nginx/.htpasswd) |
-| Health | /health | - |
-
-## 🏗️ Архитектура
-
-```
-                                    ┌─────────────┐
-                                    │    Nginx    │
-                                    │   (прокси)  │
-                                    └──────┬──────┘
-                                           │
-          ┌────────────────────────────────┼────────────────────────────────┐
-          │                                │                                │
-          ▼                                ▼                                ▼
-┌─────────────────────┐      ┌─────────────────────┐          ┌─────────────────────┐
-│      Grafana        │      │     Prometheus      │          │        Loki         │
-│   (визуализация)    │◀─────│   (сбор метрик)     │          │   (хранение логов)  │
-└─────────────────────┘      └─────────────────────┘          └─────────────────────┘
-                                      ▲                                ▲
-                                      │                                │
-                             ┌────────┴────────┐             ┌─────────┴─────────┐
-                             │    /metrics     │             │     Promtail      │
-                             └─────────────────┘             └───────────────────┘
-```
-
-## ⚙️ Добавление метрик приложения
-
-Отредактируйте `prometheus/prometheus.yml`:
-
-```yaml
-scrape_configs:
-  - job_name: "my-application"
-    static_configs:
-      - targets: ["app-host:8080"]
-    metrics_path: /metrics
-```
-
-Перезагрузите Prometheus:
-
-```bash
-docker compose restart prometheus
-```
-
-## 🔔 Алерты
-
-Все алерты настраиваются через Grafana:
-1. Откройте Grafana → Alerting → Alert rules
-2. Создайте новое правило
-3. Настройте условия и уведомления
-
-## 🔧 Полезные команды
-
-```bash
-# Логи всех сервисов
-docker compose logs -f
-
-# Логи конкретного сервиса
-docker compose logs -f grafana
-
-# Перезапуск сервиса
-docker compose restart nginx
-
-# Остановка всего стека
-docker compose down
-
-# Обновление образов
-docker compose pull && docker compose up -d
-```
-
-## 📁 Структура проекта
-
-```
-.
-├── docker-compose.yml
-├── .env                    # Ваши настройки (создать из env.example)
-├── env.example
-├── grafana/
-│   ├── dashboards/         # JSON-дашборды
-│   └── provisioning/       # Автонастройка источников данных
-├── loki/
-│   └── loki-config.yml
-├── nginx/
-│   ├── nginx.conf
-│   ├── conf.d/
-│   │   └── ssl.conf        # Конфиг для HTTPS
-│   └── .htpasswd           # Basic Auth для Prometheus/Loki
-├── prometheus/
-│   └── prometheus.yml
-├── promtail/
-│   └── promtail-config.yml
-└── scripts/
-    └── init-letsencrypt.sh # Скрипт получения SSL-сертификата
 ```
